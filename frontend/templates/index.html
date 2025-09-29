@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Modal Visual Programming Compiler</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="app-title">
+                    <i class="fas fa-puzzle-piece"></i>
+                    Visual Programming Compiler
+                </h1>
+            </div>
+            <div class="header-center">
+                <div class="language-selector">
+                    <label for="languageSelect">Language:</label>
+                    <select id="languageSelect" class="language-select">
+                        <option value="">Select Language...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="compileBtn" class="btn btn-primary" disabled>
+                    <i class="fas fa-play"></i>
+                    Compile & Run
+                </button>
+                <button id="clearBtn" class="btn btn-secondary">
+                    <i class="fas fa-trash"></i>
+                    Clear
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>Programming Blocks</h3>
+                <div class="sidebar-toggle">
+                    <i class="fas fa-chevron-left" id="sidebarToggle"></i>
+                </div>
+            </div>
+            
+            <div class="blocks-container" id="blocksContainer">
+                <div class="no-language-message">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Select a programming language to see available blocks</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Canvas Area -->
+        <main class="canvas-area">
+            <div class="canvas-header">
+                <div class="canvas-tools">
+                    <button id="undoBtn" class="tool-btn" title="Undo">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button id="redoBtn" class="tool-btn" title="Redo">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                    <button id="zoomInBtn" class="tool-btn" title="Zoom In">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button id="zoomOutBtn" class="tool-btn" title="Zoom Out">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button id="resetZoomBtn" class="tool-btn" title="Reset Zoom">
+                        <i class="fas fa-expand-arrows-alt"></i>
+                    </button>
+                </div>
+                <div class="canvas-info">
+                    <span id="canvasInfo">Drag blocks from the sidebar to start programming</span>
+                </div>
+            </div>
+            
+            <div class="canvas-wrapper">
+                <div class="canvas" id="canvas">
+                    <div class="canvas-grid"></div>
+                    <svg class="canvas-connections" id="canvasConnections"></svg>
+                    <div class="canvas-content" id="canvasContent"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Output Panel -->
+        <div class="output-panel" id="outputPanel">
+            <div class="output-tabs">
+                <button class="tab-btn active" data-tab="code">
+                    <i class="fas fa-code"></i>
+                    Generated Code
+                </button>
+                <button class="tab-btn" data-tab="explanation">
+                    <i class="fas fa-book"></i>
+                    Explanation
+                </button>
+                <button class="tab-btn" data-tab="ast">
+                    <i class="fas fa-sitemap"></i>
+                    AST View
+                </button>
+            </div>
+            
+            <div class="output-content">
+                <div class="tab-content active" id="codeTab">
+                    <div class="code-header">
+                        <div class="code-info">
+                            <span id="codeLanguage">No code generated</span>
+                        </div>
+                        <div class="code-actions">
+                            <button id="copyCodeBtn" class="btn btn-small">
+                                <i class="fas fa-copy"></i>
+                                Copy
+                            </button>
+                            <button id="downloadCodeBtn" class="btn btn-small">
+                                <i class="fas fa-download"></i>
+                                Download
+                            </button>
+                        </div>
+                    </div>
+                    <div class="code-container">
+                        <pre><code id="generatedCode" class="language-none">Compile your visual program to see the generated code here.</code></pre>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="explanationTab">
+                    <div class="explanation-container" id="explanationContent">
+                        <div class="explanation-placeholder">
+                            <i class="fas fa-lightbulb"></i>
+                            <p>Compile your program to see detailed explanations here.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="astTab">
+                    <div class="ast-container">
+                        <pre><code id="astView" class="language-json">AST will be displayed here after compilation.</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Block Properties Modal -->
+    <div class="modal-overlay" id="blockPropertiesModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Block Properties</h3>
+                <button class="modal-close" id="modalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="blockPropertiesForm">
+                    <div id="modalInputs"></div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" id="modalCancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-cog fa-spin"></i>
+            <p id="loadingMessage">Compiling your program...</p>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div class="notifications" id="notifications"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/canvas.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/blocks.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/compiler.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
