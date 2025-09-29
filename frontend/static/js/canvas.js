@@ -24,6 +24,11 @@ class CanvasManager {
         this.historyIndex = -1;
         this.maxHistorySize = 50;
         
+        // Session management
+        this.currentSessionId = null;
+        this.autoSaveTimeout = null;
+        this.autoSaveDelay = 1000; // 1 second
+        
         this.init();
     }
 
@@ -32,6 +37,9 @@ class CanvasManager {
         this.setupGrid();
         this.setupConnectionSVG();
         this.updateCanvasInfo();
+        
+        // Load the most recent session on startup
+        this.loadFromJSON();
     }
 
     setupConnectionSVG() {
@@ -260,10 +268,11 @@ class CanvasManager {
         
         // Create DOM element
         const blockElement = this.createBlockElement(block);
+        blockElement.blockData = block; // Store block data on the element
         this.canvasContent.appendChild(blockElement);
         
-        // Store block data
-        this.blocks.set(blockId, block);
+        // Store DOM element in blocks map
+        this.blocks.set(blockId, blockElement);
         
         // Save state for undo
         this.saveState();
@@ -271,10 +280,10 @@ class CanvasManager {
         // Update info
         this.updateCanvasInfo();
         
-        // Show properties modal if block has inputs (temporarily disabled for debugging)
-        // if (definition.inputs && definition.inputs.length > 0) {
-        //     this.editBlockProperties(blockId);
-        // }
+        // Show properties modal if block has inputs
+        if (definition.inputs && definition.inputs.length > 0) {
+            this.editBlockProperties(blockId);
+        }
         
         notifications.info(`Added ${Utils.camelToTitle(type)} block to canvas`);
         
@@ -337,7 +346,11 @@ class CanvasManager {
         });
     }
 
-    drawConnection(fromBlock, toBlock) {
+    drawConnection(fromBlockElement, toBlockElement) {
+        // Get block data from DOM elements
+        const fromBlock = fromBlockElement.blockData || { x: 0, y: 0 };
+        const toBlock = toBlockElement.blockData || { x: 0, y: 0 };
+        
         // Calculate connection points (center of blocks)
         const fromX = fromBlock.x + 60; // Block width/2
         const fromY = fromBlock.y + 20; // Block height/2
@@ -494,13 +507,15 @@ class CanvasManager {
     }
 
     removeBlock(blockId) {
-        const block = this.blocks.get(blockId);
-        if (!block) return;
+        const blockElement = this.blocks.get(blockId);
+        if (!blockElement) return;
+        
+        // Get block type for notification
+        const blockType = blockElement.blockData ? blockElement.blockData.type : 'unknown';
         
         // Remove from DOM
-        const element = document.getElementById(`canvas-${blockId}`);
-        if (element) {
-            element.remove();
+        if (blockElement.parentNode) {
+            blockElement.parentNode.removeChild(blockElement);
         }
         
         // Remove from blocks map
@@ -512,7 +527,7 @@ class CanvasManager {
         );
         
         // Deselect if this was the selected block
-        if (this.selectedBlock && this.selectedBlock.id === blockId) {
+        if (this.selectedBlock && this.selectedBlock.blockData && this.selectedBlock.blockData.id === blockId) {
             this.selectedBlock = null;
         }
         
@@ -522,106 +537,103 @@ class CanvasManager {
         // Update info
         this.updateCanvasInfo();
         
-        notifications.info(`Removed ${Utils.camelToTitle(block.type)} block`);
+        notifications.info(`Removed ${Utils.camelToTitle(blockType)} block`);
     }
 
-    editBlockProperties(blockId) {
-        const block = this.blocks.get(blockId);
-        if (!block || !block.definition.inputs) return;
+    deleteBlock(blockElement) {
+        if (!blockElement || !blockElement.blockData) return;
+        this.removeBlock(blockElement.blockData.id);
+    }
+
+    editBlockProperties(blockIdOrElement) {
+        let block, blockElement, blockId;
         
-        console.log('Editing properties for block:', blockId, block);
+        // Handle both blockId (string) and blockElement (DOM element) parameters
+        if (typeof blockIdOrElement === 'string') {
+            blockId = blockIdOrElement;
+            blockElement = this.blocks.get(blockId);
+            if (blockElement && blockElement.blockData) {
+                block = blockElement.blockData;
+            }
+        } else if (blockIdOrElement && blockIdOrElement.blockData) {
+            blockElement = blockIdOrElement;
+            block = blockElement.blockData;
+            blockId = block.id;
+        }
         
-        // Store the original properties for comparison
-        const originalProperties = { ...block.properties };
+        if (!block || !blockElement) {
+            console.error('Block not found for editing properties');
+            return;
+        }
+        
+        // Find the block type definition
+        const blockType = blockManager.getBlockDefinition(block.type);
+        if (!blockType || !blockType.inputs) {
+            console.warn('No properties defined for block type:', block.type);
+            return;
+        }
         
         modal.show('blockProperties', {
             blockType: block.type,
-            blockDefinition: block.definition,
-            currentProperties: block.properties,
+            blockDefinition: blockType,
+            currentProperties: block.properties || {},
             onSave: (newProperties) => {
-                console.log('Saving properties for block:', blockId, newProperties);
-                
-                // Update block properties
-                block.properties = { ...block.properties, ...newProperties };
-                
-                // Get the element and update visual display immediately
-                const element = document.getElementById(`canvas-${blockId}`);
-                console.log('Block element found:', element ? 'Yes' : 'No');
-                
-                if (element) {
-                    console.log('Updating block properties display...');
-                    this.updateBlockPropertiesDisplay(element, block.properties);
+                try {
+                    // Update block properties
+                    block.properties = { ...block.properties, ...newProperties };
                     
-                    // Verify the element is still there after update
-                    const elementAfter = document.getElementById(`canvas-${blockId}`);
-                    console.log('Block element still exists after update:', elementAfter ? 'Yes' : 'No');
-                }
-                
-                // Only save state if properties actually changed
-                const propertiesChanged = JSON.stringify(originalProperties) !== JSON.stringify(block.properties);
-                if (propertiesChanged) {
-                    console.log('Properties changed, saving state...');
+                    // Update visual display
+                    this.updateBlockPropertiesDisplay(blockElement);
+                    
+                    // Save state for undo
                     this.saveState();
                     
-                    // Final check
-                    const elementFinal = document.getElementById(`canvas-${blockId}`);
-                    console.log('Block element exists after saveState:', elementFinal ? 'Yes' : 'No');
-                } else {
-                    console.log('Properties unchanged, not saving state');
+                    notifications.success('Block properties updated');
+                } catch (error) {
+                    console.error('Error updating block properties:', error);
+                    notifications.error('Failed to update block properties');
                 }
-                
-                notifications.success('Block properties updated');
             }
         });
     }
 
-    updateBlockPropertiesDisplay(element, properties) {
-        if (!element) {
-            console.warn('Element not found for updateBlockPropertiesDisplay');
+    updateBlockPropertiesDisplay(blockElement) {
+        if (!blockElement || !blockElement.blockData) {
             return;
         }
         
-        console.log('Updating block properties display for element:', element.id, properties);
+        const blockData = blockElement.blockData;
+        const properties = blockData.properties || {};
         
-        let propertiesEl = element.querySelector('.block-properties');
+        // Update block title if it has a custom label
+        const titleElement = blockElement.querySelector('.block-title');
+        if (titleElement && properties.label) {
+            titleElement.textContent = properties.label;
+        }
+        
+        // Create or update properties display
+        let propertiesEl = blockElement.querySelector('.block-properties');
         if (!propertiesEl) {
             propertiesEl = document.createElement('div');
             propertiesEl.className = 'block-properties';
-            element.appendChild(propertiesEl);
-            console.log('Created new properties element');
+            const content = blockElement.querySelector('.block-content');
+            if (content) {
+                content.appendChild(propertiesEl);
+            }
         }
         
         // Clear existing content
         propertiesEl.innerHTML = '';
-        console.log('Cleared existing properties content');
         
-        // Add properties that have values
+        // Add properties that have values (excluding empty strings)
         Object.entries(properties).forEach(([key, value]) => {
             if (value && value.toString().trim()) {
                 const item = document.createElement('div');
                 item.className = 'property-item';
-                
-                const keyEl = document.createElement('span');
-                keyEl.className = 'property-key';
-                keyEl.textContent = `${key}:`;
-                
-                const valueEl = document.createElement('span');
-                valueEl.className = 'property-value';
-                valueEl.textContent = value.toString();
-                valueEl.title = value.toString();
-                
-                item.appendChild(keyEl);
-                item.appendChild(valueEl);
+                item.innerHTML = `<span class="property-key">${key}:</span> <span class="property-value">${value.toString()}</span>`;
                 propertiesEl.appendChild(item);
-                console.log('Added property:', key, value);
             }
         });
-        
-        // Ensure the element remains visible and properly positioned
-        element.style.display = '';
-        element.style.visibility = 'visible';
-        
-        console.log('Properties display update completed for:', element.id);
     }
 
     showBlockContextMenu(blockId, x, y) {
@@ -691,24 +703,21 @@ class CanvasManager {
     }
 
     duplicateBlock(blockId) {
-        const originalBlock = this.blocks.get(blockId);
-        if (!originalBlock) return;
+        const originalBlockElement = this.blocks.get(blockId);
+        if (!originalBlockElement || !originalBlockElement.blockData) return;
         
+        const originalBlock = originalBlockElement.blockData;
         const newPosition = {
             x: originalBlock.x + 40,
             y: originalBlock.y + 40
         };
         
         const newBlockId = this.addBlock(originalBlock.type, newPosition, originalBlock.definition);
-        const newBlock = this.blocks.get(newBlockId);
+        const newBlockElement = this.blocks.get(newBlockId);
         
-        if (newBlock) {
-            newBlock.properties = Utils.deepClone(originalBlock.properties);
-            
-            const element = document.getElementById(`canvas-${newBlockId}`);
-            if (element) {
-                this.updateBlockPropertiesDisplay(element, newBlock.properties);
-            }
+        if (newBlockElement && newBlockElement.blockData) {
+            newBlockElement.blockData.properties = Utils.deepClone(originalBlock.properties);
+            this.updateBlockPropertiesDisplay(newBlockElement);
         }
     }
 
@@ -745,10 +754,122 @@ class CanvasManager {
         this.applyTransform();
     }
 
+    // Canvas management helpers
+    clearCanvas() {
+        // Remove all blocks from DOM and clear the blocks map
+        this.blocks.forEach(block => {
+            if (block.parentNode) {
+                block.parentNode.removeChild(block);
+            }
+        });
+        this.blocks.clear();
+        
+        // Clear connections
+        this.connections = [];
+        this.renderConnections();
+        
+        // Reset counter
+        this.blockCounter = 0;
+    }
+
+    setupBlockContent(blockElement, blockType) {
+        // Create block structure
+        const header = document.createElement('div');
+        header.className = 'block-header';
+        
+        const title = document.createElement('div');
+        title.className = 'block-title';
+        title.textContent = blockType.label;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'block-delete-btn';
+        deleteBtn.innerHTML = '×';
+        deleteBtn.title = 'Delete block';
+        
+        header.appendChild(title);
+        header.appendChild(deleteBtn);
+        
+        const content = document.createElement('div');
+        content.className = 'block-content';
+        
+        // Add input ports
+        if (blockType.inputs && blockType.inputs.length > 0) {
+            const inputPorts = document.createElement('div');
+            inputPorts.className = 'block-ports input-ports';
+            blockType.inputs.forEach(input => {
+                const port = document.createElement('div');
+                port.className = 'port input-port';
+                port.dataset.portName = input.name;
+                port.title = input.label;
+                inputPorts.appendChild(port);
+            });
+            content.appendChild(inputPorts);
+        }
+        
+        // Add output ports
+        if (blockType.outputs && blockType.outputs.length > 0) {
+            const outputPorts = document.createElement('div');
+            outputPorts.className = 'block-ports output-ports';
+            blockType.outputs.forEach(output => {
+                const port = document.createElement('div');
+                port.className = 'port output-port';
+                port.dataset.portName = output.name;
+                port.title = output.label;
+                outputPorts.appendChild(port);
+            });
+            content.appendChild(outputPorts);
+        }
+        
+        blockElement.appendChild(header);
+        blockElement.appendChild(content);
+        
+        // Set up delete button
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.deleteBlock(blockElement);
+        });
+    }
+
+    setupBlockEventListeners(blockElement) {
+        // Make block draggable
+        blockElement.draggable = false; // We'll handle this manually
+        
+        // Block selection and dragging
+        blockElement.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('block-delete-btn')) return;
+            
+            e.stopPropagation();
+            this.selectBlock(blockElement);
+            
+            this.isDragging = true;
+            this.dragData = {
+                block: blockElement,
+                offsetX: e.clientX - blockElement.offsetLeft,
+                offsetY: e.clientY - blockElement.offsetTop
+            };
+        });
+        
+        // Double-click to edit properties
+        blockElement.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            this.editBlockProperties(blockElement);
+        });
+    }
+
+    updateBlockPropertiesDisplay(blockElement) {
+        const blockData = blockElement.blockData;
+        if (!blockData || !blockData.properties) return;
+        
+        // Update any visual representations of properties
+        // This is a placeholder - you can extend this based on your block types
+        const title = blockElement.querySelector('.block-title');
+        if (title && blockData.properties.label) {
+            title.textContent = blockData.properties.label;
+        }
+    }
+
     // History management
     saveState() {
-        console.log('saveState called, current blocks:', this.blocks.size);
-        
         const state = {
             blocks: Utils.deepClone(Array.from(this.blocks.entries())),
             connections: Utils.deepClone(this.connections),
@@ -756,8 +877,6 @@ class CanvasManager {
             panX: this.panX,
             panY: this.panY
         };
-        
-        console.log('State to save:', state);
         
         // Remove future states if we're not at the end
         if (this.historyIndex < this.history.length - 1) {
@@ -773,8 +892,10 @@ class CanvasManager {
             this.historyIndex++;
         }
         
-        console.log('State saved, history length:', this.history.length, 'current index:', this.historyIndex);
         this.updateUndoRedoButtons();
+        
+        // Schedule auto-save to JSON
+        this.scheduleAutoSave();
     }
 
     undo() {
@@ -794,29 +915,56 @@ class CanvasManager {
     }
 
     restoreState(state) {
-        // Clear current blocks but keep the SVG layer
-        const connectionSVG = this.canvasContent.querySelector('.canvas-connections');
-        this.canvasContent.innerHTML = '';
+        if (!state) return;
         
-        // Re-add the SVG layer
-        if (connectionSVG) {
-            this.canvasContent.appendChild(connectionSVG);
-        }
+        // Store the connection SVG to avoid removing it
+        const connectionSVG = this.connectionSVG;
         
+        // Clear existing blocks more carefully
+        this.blocks.forEach(blockElement => {
+            if (blockElement && blockElement.parentNode === this.canvasContent) {
+                this.canvasContent.removeChild(blockElement);
+            }
+        });
         this.blocks.clear();
         
-        // Restore blocks
-        state.blocks.forEach(([id, block]) => {
-            this.blocks.set(id, block);
-            const element = this.createBlockElement(block);
-            this.canvasContent.appendChild(element);
-        });
+        // Restore blocks from state data
+        if (state.blocks) {
+            state.blocks.forEach(([id, blockData]) => {
+                try {
+                    // Recreate the block element
+                    const blockElement = document.createElement('div');
+                    blockElement.className = 'canvas-block';
+                    blockElement.dataset.blockType = blockData.type;
+                    blockElement.dataset.blockId = id;
+                    blockElement.blockData = Utils.deepClone(blockData);
+                    
+                    // Position the block
+                    blockElement.style.left = `${blockData.x || 0}px`;
+                    blockElement.style.top = `${blockData.y || 0}px`;
+                    
+                    // Find the block type definition
+                    const blockType = blockManager.getBlockDefinition(blockData.type);
+                    if (blockType) {
+                        this.setupBlockContent(blockElement, blockType);
+                        this.setupBlockEventListeners(blockElement);
+                        this.updateBlockPropertiesDisplay(blockElement);
+                    }
+                    
+                    // Add to canvas and map
+                    this.canvasContent.appendChild(blockElement);
+                    this.blocks.set(id, blockElement);
+                } catch (error) {
+                    console.error('Error restoring block:', id, error);
+                }
+            });
+        }
         
         // Restore connections and view
-        this.connections = Utils.deepClone(state.connections);
-        this.zoom = state.zoom;
-        this.panX = state.panX;
-        this.panY = state.panY;
+        this.connections = Utils.deepClone(state.connections || []);
+        this.zoom = state.zoom || 1;
+        this.panX = state.panX || 0;
+        this.panY = state.panY || 0;
         
         // Re-render connections
         this.renderConnections();
@@ -848,7 +996,27 @@ class CanvasManager {
     // Export canvas data
     export() {
         return {
-            blocks: Array.from(this.blocks.values()),
+            blocks: Array.from(this.blocks.values()).map(blockElement => {
+                if (blockElement.blockData) {
+                    // DOM element with blockData
+                    const block = blockElement.blockData;
+                    const rect = blockElement.getBoundingClientRect();
+                    const canvasRect = this.canvasContent.getBoundingClientRect();
+                    
+                    return {
+                        id: block.id,
+                        type: block.type,
+                        x: (rect.left - canvasRect.left - this.panX) / this.zoom,
+                        y: (rect.top - canvasRect.top - this.panY) / this.zoom,
+                        properties: block.properties || {},
+                        definition: block.definition || {}
+                    };
+                } else if (blockElement.id && blockElement.type) {
+                    // Plain block object (fallback)
+                    return blockElement;
+                }
+                return null;
+            }).filter(block => block !== null),
             connections: this.connections,
             metadata: {
                 zoom: this.zoom,
@@ -869,8 +1037,9 @@ class CanvasManager {
         
         // Import blocks
         data.blocks.forEach(block => {
-            this.blocks.set(block.id, block);
             const element = this.createBlockElement(block);
+            element.blockData = block; // Store block data on the element
+            this.blocks.set(block.id, element);
             this.canvasContent.appendChild(element);
         });
         
@@ -891,6 +1060,199 @@ class CanvasManager {
         this.saveState();
         
         notifications.success('Canvas imported successfully');
+    }
+
+    // JSON Persistence Methods
+    async saveToJSON() {
+        try {
+            const canvasState = {
+                session_id: this.currentSessionId,
+                blocks: Array.from(this.blocks.values()).map(blockElement => {
+                    // Handle both DOM elements and plain block objects
+                    if (blockElement.blockData) {
+                        // DOM element with blockData
+                        const block = blockElement.blockData;
+                        const rect = blockElement.getBoundingClientRect();
+                        const canvasRect = this.canvasContent.getBoundingClientRect();
+                        
+                        return {
+                            id: block.id,
+                            type: block.type,
+                            x: (rect.left - canvasRect.left - this.panX) / this.zoom,
+                            y: (rect.top - canvasRect.top - this.panY) / this.zoom,
+                            properties: block.properties || {},
+                            language: block.language || this.currentLanguage
+                        };
+                    } else if (blockElement.id && blockElement.type) {
+                        // Plain block object
+                        return {
+                            id: blockElement.id,
+                            type: blockElement.type,
+                            x: blockElement.x || 0,
+                            y: blockElement.y || 0,
+                            properties: blockElement.properties || {},
+                            language: blockElement.language || this.currentLanguage
+                        };
+                    } else {
+                        console.warn('Invalid block found:', blockElement);
+                        return null;
+                    }
+                }).filter(block => block !== null), // Remove any null blocks
+                connections: this.connections.map(conn => ({
+                    from: conn.from,
+                    to: conn.to,
+                    fromPort: conn.fromPort,
+                    toPort: conn.toPort
+                })),
+                zoom: this.zoom,
+                panX: this.panX,
+                panY: this.panY,
+                language: this.currentLanguage
+            };
+
+            const response = await fetch('/api/canvas/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(canvasState)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                this.currentSessionId = result.session_id;
+                console.log('Canvas saved successfully:', result.session_id);
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error) {
+            console.error('Error saving canvas:', error);
+            notifications.error('Failed to save canvas state');
+        }
+    }
+
+    async loadFromJSON(sessionId = null) {
+        try {
+            const url = sessionId ? `/api/canvas/load/${sessionId}` : '/api/canvas/load';
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    console.log('No saved session found');
+                    return;
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (result.success && result.canvas_state) {
+                this.restoreFromJSONState(result.canvas_state);
+                this.currentSessionId = result.canvas_state.session_id;
+                notifications.success('Canvas loaded successfully');
+            } else if (result.message) {
+                console.log(result.message);
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error) {
+            console.error('Error loading canvas:', error);
+            notifications.error('Failed to load canvas state');
+        }
+    }
+
+    restoreFromJSONState(canvasState) {
+        // Clear existing blocks and connections
+        this.clearCanvas();
+
+        // Restore blocks
+        if (canvasState.blocks) {
+            canvasState.blocks.forEach(blockData => {
+                try {
+                    this.createBlockFromData(blockData);
+                } catch (error) {
+                    console.error('Error creating block:', blockData, error);
+                }
+            });
+        }
+
+        // Restore connections
+        if (canvasState.connections) {
+            this.connections = canvasState.connections.map(connData => ({
+                from: connData.from,
+                to: connData.to,
+                fromPort: connData.fromPort,
+                toPort: connData.toPort
+            }));
+            this.renderConnections();
+        }
+
+        // Restore view state
+        this.zoom = canvasState.zoom || 1;
+        this.panX = canvasState.panX || 0;
+        this.panY = canvasState.panY || 0;
+        this.currentLanguage = canvasState.language || 'python';
+
+        // Update UI
+        this.applyTransform();
+        this.updateCanvasInfo();
+
+        console.log('Canvas state restored from JSON');
+    }
+
+    scheduleAutoSave() {
+        if (this.autoSaveTimeout) {
+            clearTimeout(this.autoSaveTimeout);
+        }
+        
+        this.autoSaveTimeout = setTimeout(() => {
+            this.saveToJSON();
+        }, this.autoSaveDelay);
+    }
+
+    createBlockFromData(blockData) {
+        // Find the block type definition
+        const blockType = blockManager.getBlockDefinition(blockData.type);
+        if (!blockType) {
+            console.warn('Unknown block type:', blockData.type);
+            return null;
+        }
+
+        // Create the block element
+        const blockElement = document.createElement('div');
+        blockElement.className = 'canvas-block';
+        blockElement.dataset.blockType = blockData.type;
+        blockElement.dataset.blockId = blockData.id;
+
+        // Set up block data
+        blockElement.blockData = {
+            id: blockData.id,
+            type: blockData.type,
+            properties: blockData.properties || {},
+            language: blockData.language || this.currentLanguage
+        };
+
+        // Create block content
+        this.setupBlockContent(blockElement, blockType);
+
+        // Position the block
+        blockElement.style.left = `${blockData.x}px`;
+        blockElement.style.top = `${blockData.y}px`;
+
+        // Add to canvas and blocks map
+        this.canvasContent.appendChild(blockElement);
+        this.blocks.set(blockData.id, blockElement);
+
+        // Set up block event listeners
+        this.setupBlockEventListeners(blockElement);
+
+        // Update block display with properties
+        this.updateBlockPropertiesDisplay(blockElement);
+
+        return blockElement;
     }
 }
 

@@ -1,7 +1,12 @@
-from flask import Flask, render_template, request, jsonify
+import json
+import os
+from datetime import datetime
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import os
 import sys
+import json
+from datetime import datetime
 
 # Add the current directory to the Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -240,6 +245,117 @@ def get_example_program():
         "success": True,
         "example": example_program
     })
+
+@app.route('/api/canvas/save', methods=['POST'])
+def save_canvas_state():
+    """Save canvas state to JSON file"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No data provided"
+            }), 400
+        
+        # Create sessions directory if it doesn't exist
+        sessions_dir = os.path.join(os.path.dirname(__file__), 'sessions')
+        os.makedirs(sessions_dir, exist_ok=True)
+        
+        # Generate session ID or use provided one
+        session_id = data.get('session_id', f"session_{int(datetime.now().timestamp())}")
+        
+        # Save state to file
+        canvas_state = {
+            "session_id": session_id,
+            "timestamp": datetime.now().isoformat(),
+            "blocks": data.get('blocks', []),
+            "connections": data.get('connections', []),
+            "zoom": data.get('zoom', 1),
+            "panX": data.get('panX', 0),
+            "panY": data.get('panY', 0),
+            "language": data.get('language', 'python')
+        }
+        
+        file_path = os.path.join(sessions_dir, f"{session_id}.json")
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(canvas_state, f, indent=2, ensure_ascii=False)
+        
+        return jsonify({
+            "success": True,
+            "session_id": session_id,
+            "message": "Canvas state saved successfully"
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/canvas/load/<session_id>', methods=['GET'])
+def load_canvas_state(session_id):
+    """Load canvas state from JSON file"""
+    try:
+        sessions_dir = os.path.join(os.path.dirname(__file__), 'sessions')
+        file_path = os.path.join(sessions_dir, f"{session_id}.json")
+        
+        if not os.path.exists(file_path):
+            return jsonify({
+                "success": False,
+                "error": "Session not found"
+            }), 404
+        
+        with open(file_path, 'r', encoding='utf-8') as f:
+            canvas_state = json.load(f)
+        
+        return jsonify({
+            "success": True,
+            "canvas_state": canvas_state
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/canvas/load', methods=['GET'])
+def load_latest_canvas_state():
+    """Load the most recent canvas state"""
+    try:
+        sessions_dir = os.path.join(os.path.dirname(__file__), 'sessions')
+        
+        if not os.path.exists(sessions_dir):
+            return jsonify({
+                "success": False,
+                "message": "No saved sessions found"
+            })
+        
+        # Find the most recent session file
+        session_files = [f for f in os.listdir(sessions_dir) if f.endswith('.json')]
+        if not session_files:
+            return jsonify({
+                "success": False,
+                "message": "No saved sessions found"
+            })
+        
+        # Get the most recent file
+        latest_file = max(session_files, key=lambda f: os.path.getmtime(os.path.join(sessions_dir, f)))
+        file_path = os.path.join(sessions_dir, latest_file)
+        
+        with open(file_path, 'r', encoding='utf-8') as f:
+            canvas_state = json.load(f)
+        
+        return jsonify({
+            "success": True,
+            "canvas_state": canvas_state
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 if __name__ == '__main__':
     # Check if running in development mode

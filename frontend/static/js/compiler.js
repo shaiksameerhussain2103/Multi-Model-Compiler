@@ -163,28 +163,62 @@ class CompilerManager {
     }
 
     prepareBlocksData() {
-        return Array.from(canvas.blocks.values()).map(block => ({
-            id: block.id,
-            type: block.type,
-            x: block.x,
-            y: block.y,
-            properties: block.properties || {}
-        }));
+        return Array.from(canvas.blocks.values()).map(blockElement => {
+            // Handle both DOM elements and plain block objects
+            if (blockElement.blockData) {
+                // DOM element with blockData
+                const block = blockElement.blockData;
+                const rect = blockElement.getBoundingClientRect();
+                const canvasRect = canvas.canvasContent.getBoundingClientRect();
+                
+                return {
+                    id: block.id,
+                    type: block.type,
+                    x: (rect.left - canvasRect.left - canvas.panX) / canvas.zoom,
+                    y: (rect.top - canvasRect.top - canvas.panY) / canvas.zoom,
+                    properties: block.properties || {}
+                };
+            } else if (blockElement.id && blockElement.type) {
+                // Plain block object (fallback)
+                return {
+                    id: blockElement.id,
+                    type: blockElement.type,
+                    x: blockElement.x || 0,
+                    y: blockElement.y || 0,
+                    properties: blockElement.properties || {}
+                };
+            } else {
+                console.warn('Invalid block found:', blockElement);
+                return null;
+            }
+        }).filter(block => block !== null); // Remove any null blocks
     }
 
     prepareConnectionsData() {
-        // For now, we'll create simple sequential connections
-        // This could be enhanced to support actual visual connections
-        const blocks = Array.from(canvas.blocks.values()).sort((a, b) => {
+        // Use the actual connections from the canvas, not generated ones
+        if (canvas.connections && canvas.connections.length > 0) {
+            return canvas.connections.map(conn => ({
+                from: conn.from,
+                to: conn.to,
+                fromPort: conn.fromPort || 'output',
+                toPort: conn.toPort || 'input'
+            }));
+        }
+        
+        // Fallback: create simple sequential connections based on block positions
+        const blocksData = this.prepareBlocksData();
+        const sortedBlocks = blocksData.sort((a, b) => {
             if (a.y === b.y) return a.x - b.x;
             return a.y - b.y;
         });
         
         const connections = [];
-        for (let i = 0; i < blocks.length - 1; i++) {
+        for (let i = 0; i < sortedBlocks.length - 1; i++) {
             connections.push({
-                from: blocks[i].id,
-                to: blocks[i + 1].id
+                from: sortedBlocks[i].id,
+                to: sortedBlocks[i + 1].id,
+                fromPort: 'output',
+                toPort: 'input'
             });
         }
         
