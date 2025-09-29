@@ -271,10 +271,10 @@ class CanvasManager {
         // Update info
         this.updateCanvasInfo();
         
-        // Show properties modal if block has inputs
-        if (definition.inputs && definition.inputs.length > 0) {
-            this.editBlockProperties(blockId);
-        }
+        // Show properties modal if block has inputs (temporarily disabled for debugging)
+        // if (definition.inputs && definition.inputs.length > 0) {
+        //     this.editBlockProperties(blockId);
+        // }
         
         notifications.info(`Added ${Utils.camelToTitle(type)} block to canvas`);
         
@@ -529,21 +529,46 @@ class CanvasManager {
         const block = this.blocks.get(blockId);
         if (!block || !block.definition.inputs) return;
         
+        console.log('Editing properties for block:', blockId, block);
+        
+        // Store the original properties for comparison
+        const originalProperties = { ...block.properties };
+        
         modal.show('blockProperties', {
             blockType: block.type,
             blockDefinition: block.definition,
             currentProperties: block.properties,
             onSave: (newProperties) => {
+                console.log('Saving properties for block:', blockId, newProperties);
+                
+                // Update block properties
                 block.properties = { ...block.properties, ...newProperties };
                 
-                // Update visual display
+                // Get the element and update visual display immediately
                 const element = document.getElementById(`canvas-${blockId}`);
+                console.log('Block element found:', element ? 'Yes' : 'No');
+                
                 if (element) {
+                    console.log('Updating block properties display...');
                     this.updateBlockPropertiesDisplay(element, block.properties);
+                    
+                    // Verify the element is still there after update
+                    const elementAfter = document.getElementById(`canvas-${blockId}`);
+                    console.log('Block element still exists after update:', elementAfter ? 'Yes' : 'No');
                 }
                 
-                // Save state for undo
-                this.saveState();
+                // Only save state if properties actually changed
+                const propertiesChanged = JSON.stringify(originalProperties) !== JSON.stringify(block.properties);
+                if (propertiesChanged) {
+                    console.log('Properties changed, saving state...');
+                    this.saveState();
+                    
+                    // Final check
+                    const elementFinal = document.getElementById(`canvas-${blockId}`);
+                    console.log('Block element exists after saveState:', elementFinal ? 'Yes' : 'No');
+                } else {
+                    console.log('Properties unchanged, not saving state');
+                }
                 
                 notifications.success('Block properties updated');
             }
@@ -551,15 +576,26 @@ class CanvasManager {
     }
 
     updateBlockPropertiesDisplay(element, properties) {
+        if (!element) {
+            console.warn('Element not found for updateBlockPropertiesDisplay');
+            return;
+        }
+        
+        console.log('Updating block properties display for element:', element.id, properties);
+        
         let propertiesEl = element.querySelector('.block-properties');
         if (!propertiesEl) {
             propertiesEl = document.createElement('div');
             propertiesEl.className = 'block-properties';
             element.appendChild(propertiesEl);
+            console.log('Created new properties element');
         }
         
+        // Clear existing content
         propertiesEl.innerHTML = '';
+        console.log('Cleared existing properties content');
         
+        // Add properties that have values
         Object.entries(properties).forEach(([key, value]) => {
             if (value && value.toString().trim()) {
                 const item = document.createElement('div');
@@ -577,8 +613,15 @@ class CanvasManager {
                 item.appendChild(keyEl);
                 item.appendChild(valueEl);
                 propertiesEl.appendChild(item);
+                console.log('Added property:', key, value);
             }
         });
+        
+        // Ensure the element remains visible and properly positioned
+        element.style.display = '';
+        element.style.visibility = 'visible';
+        
+        console.log('Properties display update completed for:', element.id);
     }
 
     showBlockContextMenu(blockId, x, y) {
@@ -704,6 +747,8 @@ class CanvasManager {
 
     // History management
     saveState() {
+        console.log('saveState called, current blocks:', this.blocks.size);
+        
         const state = {
             blocks: Utils.deepClone(Array.from(this.blocks.entries())),
             connections: Utils.deepClone(this.connections),
@@ -711,6 +756,8 @@ class CanvasManager {
             panX: this.panX,
             panY: this.panY
         };
+        
+        console.log('State to save:', state);
         
         // Remove future states if we're not at the end
         if (this.historyIndex < this.history.length - 1) {
@@ -726,6 +773,7 @@ class CanvasManager {
             this.historyIndex++;
         }
         
+        console.log('State saved, history length:', this.history.length, 'current index:', this.historyIndex);
         this.updateUndoRedoButtons();
     }
 
@@ -746,8 +794,15 @@ class CanvasManager {
     }
 
     restoreState(state) {
-        // Clear current blocks
-        this.canvasContent.innerHTML = '<div class="canvas-grid"></div>';
+        // Clear current blocks but keep the SVG layer
+        const connectionSVG = this.canvasContent.querySelector('.canvas-connections');
+        this.canvasContent.innerHTML = '';
+        
+        // Re-add the SVG layer
+        if (connectionSVG) {
+            this.canvasContent.appendChild(connectionSVG);
+        }
+        
         this.blocks.clear();
         
         // Restore blocks
@@ -762,6 +817,9 @@ class CanvasManager {
         this.zoom = state.zoom;
         this.panX = state.panX;
         this.panY = state.panY;
+        
+        // Re-render connections
+        this.renderConnections();
         
         this.applyTransform();
         this.updateCanvasInfo();

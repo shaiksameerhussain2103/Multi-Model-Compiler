@@ -18,8 +18,13 @@ CORS(app)
 compiler_service = CompilerService()
 
 @app.route('/')
-def index():
-    """Main application page"""
+def home():
+    """Home page with service selection"""
+    return render_template('home.html')
+
+@app.route('/visual-programming')
+def visual_programming():
+    """Visual programming application page"""
     return render_template('index.html')
 
 @app.route('/api/languages', methods=['GET'])

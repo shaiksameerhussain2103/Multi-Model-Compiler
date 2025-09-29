@@ -59,6 +59,9 @@
             </div>
         </aside>
 
+        <!-- Left Sidebar Resize Handle -->
+        <div class="resize-handle left-resize-handle" id="leftResizeHandle"></div>
+
         <!-- Canvas Area -->
         <main class="canvas-area">
             <div class="canvas-header">
@@ -92,6 +95,9 @@
                 </div>
             </div>
         </main>
+
+        <!-- Right Sidebar Resize Handle -->
+        <div class="resize-handle right-resize-handle" id="rightResizeHandle"></div>
 
         <!-- Output Panel -->
         <div class="output-panel" id="outputPanel">
@@ -189,6 +195,7 @@
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/resizable.js') }}"></script>
     <script src="{{ url_for('static', filename='js/canvas.js') }}"></script>
     <script src="{{ url_for('static', filename='js/blocks.js') }}"></script>
     <script src="{{ url_for('static', filename='js/compiler.js') }}"></script>

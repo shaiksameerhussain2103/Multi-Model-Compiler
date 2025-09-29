@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" class="home-page">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Modal Compiler</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/home.css') }}" rel="stylesheet">
+</head>
+<body class="home-body">
+    <div class="home-container">
+        <header class="home-header">
+            <div class="hero-section">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        <i class="fas fa-puzzle-piece"></i>
+                        Multi-Modal Compiler
+                    </h1>
+                    <p class="hero-subtitle">
+                        Transform your ideas into code with visual programming and AI-powered compilation
+                    </p>
+                </div>
+            </div>
+        </header>
+        
+        <main class="home-main">
+            <div class="services-section">
+                <h2 class="services-title">Available Services</h2>
+                <div class="services-grid">
+                    <div class="service-card">
+                        <div class="service-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <h3 class="service-title">Visual Programming</h3>
+                        <p class="service-description">
+                            Create programs using drag-and-drop blocks with AI-powered code generation for C++, Python, Java, and more.
+                        </p>
+                        <a href="/visual-programming" class="service-button">
+                            <i class="fas fa-arrow-right"></i>
+                            Launch Visual Programming
+                        </a>
+                    </div>
+                    
+                    <!-- Placeholder for future services -->
+                    <div class="service-card coming-soon">
+                        <div class="service-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <h3 class="service-title">AI Code Assistant</h3>
+                        <p class="service-description">
+                            Advanced AI-powered code generation and optimization tools.
+                        </p>
+                        <div class="coming-soon-badge">
+                            Coming Soon
+                        </div>
+                    </div>
+                    
+                    <div class="service-card coming-soon">
+                        <div class="service-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3 class="service-title">Code Analytics</h3>
+                        <p class="service-description">
+                            Analyze code performance, complexity, and optimization opportunities.
+                        </p>
+                        <div class="coming-soon-badge">
+                            Coming Soon
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="home-footer">
+            <div class="footer-content">
+                <p>&copy; 2025 Multi-Modal Compiler. Powered by AI and visual programming.</p>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        // Ensure proper scrolling and interaction behavior
+        document.addEventListener('DOMContentLoaded', function() {
+            // Reset any global styles that might interfere
+            document.body.style.overflow = 'auto';
+            document.body.style.height = 'auto';
+            document.body.style.position = 'relative';
+            
+            // Ensure service buttons are clickable
+            const serviceButtons = document.querySelectorAll('.service-button');
+            serviceButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    console.log('Service button clicked:', this.href);
+                    // Let the default navigation happen
+                });
+            });
+            
+            // Debug: log if there are any CSS issues
+            console.log('Home page loaded successfully');
+            console.log('Body overflow:', window.getComputedStyle(document.body).overflow);
+            console.log('Body height:', window.getComputedStyle(document.body).height);
+        });
+    </script>
+</body>
+</html>
