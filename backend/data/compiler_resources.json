@@ -1,0 +1,85 @@
+{
+  "youtube": [
+    {
+      "title": "Gatesmashers Compiler Design Playlist",
+      "description": "Comprehensive compiler design concepts with clear explanations and practical examples for beginners to advanced learners",
+      "url": "https://www.youtube.com/watch?v=XUsw5igq4DM&list=PLxCzCOWd7aiEKtKSIHYusizkESC42diyc",
+      "channel": "Gatesmashers",
+      "videos": 45,
+      "topics": ["Lexical Analysis", "Syntax Analysis", "Semantic Analysis", "Code Generation", "Optimization"]
+    },
+    {
+      "title": "Sudhakar Compiler Design Lectures",
+      "description": "In-depth compiler design lectures covering all phases with detailed theoretical explanations",
+      "url": "https://www.youtube.com/watch?v=CcnhLKPmPEM&list=PLXj4XH7LcRfC9pGMWuM6UWE3V4YZ9TZzM",
+      "channel": "Sudhakar Atchala",
+      "videos": 38,
+      "topics": ["Parsing Techniques", "Symbol Tables", "Error Handling", "Intermediate Code", "Target Code"]
+    },
+    {
+      "title": "The GateHub Compiler Design Playlist",
+      "description": "GATE-focused compiler design preparation with solved examples and interview questions",
+      "url": "https://www.youtube.com/watch?v=Cb46_P12bMY&list=PL1QH9gyQXfguPNDTsnG90W2kBDQpYLDQr",
+      "channel": "The GateHub",
+      "videos": 32,
+      "topics": ["GATE Questions", "Interview Prep", "Quick Revision", "Problem Solving", "Exam Strategy"]
+    },
+    {
+      "title": "Neso Academy Compiler Design",
+      "description": "Step-by-step compiler design tutorials with animated explanations and clear concepts",
+      "url": "https://www.youtube.com/watch?v=5ZmFlxrNaN8&list=PLBlnK6fEyqRjT3oJxFXRgjPNzeS-LFY-q",
+      "channel": "Neso Academy",
+      "videos": 42,
+      "topics": ["Fundamentals", "Finite Automata", "Context-Free Grammars", "LR Parsing", "AST"]
+    }
+  ],
+  "books": [
+    {
+      "title": "Dragon Book (Compilers: Principles, Techniques, and Tools)",
+      "authors": ["Alfred V. Aho", "Monica S. Lam", "Ravi Sethi", "Jeffrey D. Ullman"],
+      "description": "The definitive guide to compiler design - industry standard textbook used in universities worldwide",
+      "pdf_url": "https://www.academia.edu/10208664/Compilers_Principles_Techniques_and_Tools",
+      "year": 2006,
+      "topics": ["Theory", "Advanced Concepts", "Formal Methods", "Optimization", "Code Generation"]
+    },
+    {
+      "title": "Engineering a Compiler",
+      "authors": ["Keith Cooper", "Linda Torczon"],
+      "description": "Modern approach to compiler construction with practical examples and engineering focus",
+      "pdf_url": "https://www.cs.cornell.edu/courses/cs4120/2022fa/textbook.pdf",
+      "year": 2011,
+      "topics": ["Practical Implementation", "Modern Techniques", "Performance", "Tools", "Real-world Examples"]
+    },
+    {
+      "title": "NPTEL Compiler Design Course",
+      "authors": ["IIT Faculty"],
+      "description": "Comprehensive lecture notes and materials from NPTEL's compiler design course",
+      "pdf_url": "https://nptel.ac.in/courses/106105086/",
+      "year": 2021,
+      "topics": ["Structured Learning", "Video Lectures", "Assignments", "Quizzes", "Certification"]
+    }
+  ],
+  "online": [
+    {
+      "title": "TutorialsPoint Compiler Design",
+      "description": "Interactive tutorials with examples, exercises, and step-by-step explanations",
+      "url": "https://www.tutorialspoint.com/compiler_design/index.htm",
+      "type": "Tutorial Platform",
+      "features": ["Interactive Examples", "Code Snippets", "Practice Problems", "Online Compiler"]
+    },
+    {
+      "title": "GeeksforGeeks Compiler Design",
+      "description": "Comprehensive articles, algorithms, and interview questions with coding examples",
+      "url": "https://www.geeksforgeeks.org/compiler-design-tutorials/",
+      "type": "Educational Articles",
+      "features": ["Algorithm Explanations", "Interview Questions", "Code Examples", "Practice Tests"]
+    },
+    {
+      "title": "GitHub Compiler Projects",
+      "description": "Open-source compiler implementations and educational projects to study real code",
+      "url": "https://github.com/topics/compiler",
+      "type": "Code Repository",
+      "features": ["Source Code", "Real Implementations", "Different Languages", "Community Projects"]
+    }
+  ]
+}

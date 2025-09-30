@@ -229,3 +229,35 @@ class CompilerService:
                 "success": False,
                 "error": f"Test failed: {str(e)}"
             }
+    
+    def generate_explanation(self, question: str, system_prompt: str = "", user_prompt: str = "") -> str:
+        """
+        Generate explanation for compiler design questions using Gemini API
+        
+        Args:
+            question: The question to answer
+            system_prompt: System prompt for context
+            user_prompt: User prompt for specific formatting
+        
+        Returns:
+            Generated explanation as string
+        """
+        try:
+            # Use the provided prompts or create a default one
+            if not user_prompt:
+                user_prompt = f"Please explain this compiler design concept: {question}"
+            
+            # Create the full prompt
+            full_prompt = f"{system_prompt}\n\n{user_prompt}" if system_prompt else user_prompt
+            
+            # Generate response using Gemini
+            response = self.gemini_service.model.generate_content(full_prompt)
+            
+            if response and response.text:
+                return response.text
+            else:
+                return "I apologize, but I couldn't generate an explanation for your question. Please try rephrasing your question."
+                
+        except Exception as e:
+            print(f"Error generating explanation: {e}")
+            return f"I encountered an error while generating the explanation: {str(e)}. Please try again."

@@ -29,6 +29,14 @@ def home():
 
 @app.route('/visual-programming')
 def visual_programming():
+    """Visual programming interface"""
+    return render_template('visual_programming.html')
+
+@app.route('/compiler-design')
+def compiler_design():
+    """Compiler Design Resources Hub and Learning Tools"""
+    return render_template('compiler_design.html')
+def visual_programming():
     """Visual programming application page"""
     return render_template('index.html')
 
@@ -159,6 +167,27 @@ def validate_program():
         return jsonify({
             "success": False,
             "error": str(e)
+        }), 500
+
+@app.route('/api/status', methods=['GET'])
+def api_status():
+    """Check API and service status"""
+    try:
+        # Test Gemini connection
+        gemini_connected = compiler_service.gemini_service.test_connection()
+        
+        return jsonify({
+            "status": "connected" if gemini_connected else "disconnected",
+            "gemini_api": gemini_connected,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "status": "disconnected",
+            "gemini_api": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
         }), 500
 
 @app.route('/api/test', methods=['GET'])
@@ -355,6 +384,197 @@ def load_latest_canvas_state():
         return jsonify({
             "success": False,
             "error": str(e)
+        }), 500
+
+# Compiler Design Module APIs
+@app.route('/api/compiler-design/resources', methods=['GET'])
+def get_compiler_resources():
+    """Get compiler design learning resources"""
+    try:
+        # Load resources from JSON file
+        resources_file = os.path.join(os.path.dirname(__file__), 'backend', 'data', 'compiler_resources.json')
+        
+        with open(resources_file, 'r', encoding='utf-8') as f:
+            resources = json.load(f)
+        
+        return jsonify({
+            "success": True,
+            "resources": resources
+        })
+        
+    except FileNotFoundError:
+        return jsonify({
+            "success": False,
+            "error": "Resources file not found"
+        }), 404
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/compiler-design/qa', methods=['POST'])
+def compiler_qa():
+    """Answer compiler design questions using Gemini API"""
+    try:
+        data = request.get_json()
+        if not data or 'question' not in data:
+            return jsonify({
+                "success": False,
+                "error": "Question is required"
+            }), 400
+            
+        question = data['question'].strip()
+        if not question:
+            return jsonify({
+                "success": False,
+                "error": "Question cannot be empty"
+            }), 400
+        
+        # Create system prompt for compiler design Q&A
+        system_prompt = """You are an expert Compiler Design tutor and professor. Your role is to help students understand compiler concepts clearly and thoroughly.
+
+Guidelines for your responses:
+1. Provide clear, educational explanations suitable for computer science students
+2. Break down complex concepts into digestible parts
+3. Include relevant examples, code snippets, or diagrams when helpful
+4. Reference standard compiler design terminology and phases
+5. For technical questions, provide both theoretical explanation and practical examples
+6. If the question is about implementation, provide pseudocode or algorithm steps
+7. Always maintain academic rigor while being accessible to students
+
+Topics you should be expert in:
+- Lexical Analysis (Tokenization, Regular Expressions, Finite Automata)
+- Syntax Analysis (Parsing, CFG, Top-down/Bottom-up parsing, LR, LALR)
+- Semantic Analysis (Symbol Tables, Type Checking, Scope Resolution)
+- Intermediate Code Generation (Three-address code, AST, IR)
+- Code Optimization (Local, Global, Peephole optimization)
+- Code Generation (Target code, Register allocation)
+- Error Handling and Recovery
+- Compiler Tools (Lex, Yacc, ANTLR)
+
+Format your response with:
+- Clear section headers when appropriate
+- Code examples in proper syntax highlighting format
+- Step-by-step explanations for algorithms
+- References to standard compiler design literature when relevant
+
+Remember: You're helping students learn, so be patient, thorough, and encouraging."""
+
+        user_prompt = f"Student Question: {question}\n\nPlease provide a comprehensive explanation that helps the student understand this compiler design concept."
+        
+        # Get response from Gemini
+        response = compiler_service.generate_explanation(
+            question, 
+            system_prompt=system_prompt,
+            user_prompt=user_prompt
+        )
+        
+        return jsonify({
+            "success": True,
+            "question": question,
+            "answer": response,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/compiler-design/analyze', methods=['POST'])
+def analyze_code():
+    """Perform lexical and syntax analysis on code snippets"""
+    try:
+        print("=== ANALYZE CODE API DEBUG START ===")
+        data = request.get_json()
+        print(f"Received data: {data}")
+        
+        if not data or 'code' not in data:
+            print("ERROR: No code in request data")
+            return jsonify({
+                "success": False,
+                "error": "Code is required"
+            }), 400
+            
+        code = data.get('code', '').strip()
+        print(f"Code to analyze: {repr(code)}")
+        
+        if not code:
+            print("ERROR: Code is empty")
+            return jsonify({
+                "success": False,
+                "error": "Code cannot be empty"
+            }), 400
+            
+        analysis_type = data.get('analysis_type', 'lexical')  # lexical, syntax, or both
+        print(f"Analysis type: {analysis_type}")
+        
+        # Create system prompt for code analysis
+        system_prompt = """You are a compiler analysis tool that performs lexical and syntax analysis on code snippets.
+
+For LEXICAL ANALYSIS:
+- Identify and classify all tokens (keywords, identifiers, operators, literals, delimiters)
+- Provide token type and lexeme for each token
+- Handle whitespace and comments appropriately
+- Identify any lexical errors
+
+For SYNTAX ANALYSIS:
+- Generate parse tree or AST representation
+- Identify grammar productions used
+- Show derivation steps for simple expressions
+- Identify any syntax errors
+- Explain the parsing process
+
+Output format should be structured JSON with:
+- tokens: array of {type, lexeme, position} for lexical analysis
+- parse_tree: hierarchical structure for syntax analysis
+- errors: array of any errors found
+- explanation: human-readable explanation of the analysis
+
+Be educational and explain each step of the analysis process."""
+
+        user_prompt = f"""Analyze this code snippet:
+
+```
+{code}
+```
+
+Analysis type requested: {analysis_type}
+
+Please provide a detailed {analysis_type} analysis with educational explanations."""
+        
+        print("Calling generate_explanation...")
+        # Get analysis from Gemini
+        response = compiler_service.generate_explanation(
+            code,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt
+        )
+        
+        print(f"Generated response length: {len(response) if response else 0}")
+        print(f"Response preview: {response[:100] if response else 'None'}...")
+        
+        result = {
+            "success": True,
+            "code": code,
+            "analysis_type": analysis_type,
+            "analysis": response,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        print("=== ANALYZE CODE API DEBUG END ===")
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"EXCEPTION in analyze_code: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "error": f"Server error: {str(e)}"
         }), 500
 
 if __name__ == '__main__':

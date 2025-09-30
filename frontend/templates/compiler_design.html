@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compiler Design - Learning Hub</title>
+    
+    <!-- External Libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/compiler-design.css') }}">
+</head>
+<body class="compiler-design-page">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="header-left">
+                <a href="/" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to Home</span>
+                </a>
+                <h1 class="app-title">
+                    <i class="fas fa-cogs"></i>
+                    Compiler Design Hub
+                </h1>
+            </div>
+            <div class="header-right">
+                <div class="status-indicators">
+                    <div class="api-status" id="apiStatus">
+                        <i class="fas fa-circle"></i>
+                        <span>API</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Navigation Tabs -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="resources">
+                <i class="fas fa-books"></i>
+                Resources Hub
+            </button>
+            <button class="tab-btn" data-tab="qa">
+                <i class="fas fa-question-circle"></i>
+                Q&A Assistant
+            </button>
+            <button class="tab-btn" data-tab="simulator">
+                <i class="fas fa-code"></i>
+                Code Analyzer
+            </button>
+            <button class="tab-btn" data-tab="quiz">
+                <i class="fas fa-brain"></i>
+                Quick Quiz
+            </button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="tab-content-container">
+            <!-- Resources Tab -->
+            <div class="tab-content active" id="resources">
+                <div class="resources-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-books"></i> Learning Resources</h2>
+                        <p>Curated collection of high-quality compiler design learning materials</p>
+                    </div>
+
+                    <!-- Resource Categories -->
+                    <div class="resource-categories">
+                        <!-- YouTube Playlists -->
+                        <div class="resource-category">
+                            <div class="category-header">
+                                <h3><i class="fab fa-youtube"></i> Video Lectures</h3>
+                                <span class="category-count" id="youtubeCount">Loading...</span>
+                            </div>
+                            <div class="resource-grid" id="youtubeResources">
+                                <!-- Dynamically loaded YouTube playlists -->
+                            </div>
+                        </div>
+
+                        <!-- Books & PDFs -->
+                        <div class="resource-category">
+                            <div class="category-header">
+                                <h3><i class="fas fa-book"></i> Books & PDFs</h3>
+                                <span class="category-count" id="booksCount">Loading...</span>
+                            </div>
+                            <div class="resource-grid" id="booksResources">
+                                <!-- Dynamically loaded books and PDFs -->
+                            </div>
+                        </div>
+
+                        <!-- Online Resources -->
+                        <div class="resource-category">
+                            <div class="category-header">
+                                <h3><i class="fas fa-globe"></i> Online Resources</h3>
+                                <span class="category-count" id="onlineCount">Loading...</span>
+                            </div>
+                            <div class="resource-grid" id="onlineResources">
+                                <!-- Dynamically loaded online resources -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q&A Tab -->
+            <div class="tab-content" id="qa">
+                <div class="qa-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-question-circle"></i> AI-Powered Q&A Assistant</h2>
+                        <p>Ask any compiler design question and get detailed explanations</p>
+                    </div>
+
+                    <div class="qa-interface">
+                        <div class="question-input-section">
+                            <div class="input-group">
+                                <textarea 
+                                    id="questionInput" 
+                                    placeholder="Ask your compiler design question here... (e.g., 'What is the difference between top-down and bottom-up parsing?')"
+                                    rows="3"></textarea>
+                                <button id="askQuestionBtn" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i>
+                                    Ask Question
+                                </button>
+                            </div>
+                            <div class="quick-questions">
+                                <span>Quick questions:</span>
+                                <button class="quick-q-btn" data-question="What are the phases of a compiler?">Compiler Phases</button>
+                                <button class="quick-q-btn" data-question="Explain lexical analysis with examples">Lexical Analysis</button>
+                                <button class="quick-q-btn" data-question="What is the difference between LR and LALR parsing?">LR vs LALR</button>
+                                <button class="quick-q-btn" data-question="How do symbol tables work in compilers?">Symbol Tables</button>
+                            </div>
+                        </div>
+
+                        <div class="qa-results" id="qaResults">
+                            <!-- Q&A results will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Analyzer Tab -->
+            <div class="tab-content" id="simulator">
+                <div class="simulator-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-code"></i> Lexical & Syntax Analyzer</h2>
+                        <p>Analyze code snippets to understand tokenization and parsing</p>
+                    </div>
+
+                    <div class="analyzer-interface">
+                        <div class="code-input-section">
+                            <div class="input-controls">
+                                <label for="codeInput">Enter Code to Analyze:</label>
+                                <div class="analysis-options">
+                                    <label class="radio-option">
+                                        <input type="radio" name="analysisType" value="lexical" checked>
+                                        <span>Lexical Analysis</span>
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="analysisType" value="syntax">
+                                        <span>Syntax Analysis</span>
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="analysisType" value="both">
+                                        <span>Both</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="code-input-group">
+                                <textarea 
+                                    id="codeInput" 
+                                    placeholder="Enter your code here... (e.g., int x = 5 + 3;)"
+                                    rows="6"></textarea>
+                                <button id="analyzeCodeBtn" class="btn btn-secondary">
+                                    <i class="fas fa-search"></i>
+                                    Analyze Code
+                                </button>
+                            </div>
+                            <div class="sample-codes">
+                                <span>Sample codes:</span>
+                                <button class="sample-code-btn" data-code="int x = 5 + 3;">Simple Assignment</button>
+                                <button class="sample-code-btn" data-code="if (x > 0) { print(x); }">If Statement</button>
+                                <button class="sample-code-btn" data-code="for (int i = 0; i < 10; i++) { sum += i; }">For Loop</button>
+                            </div>
+                        </div>
+
+                        <div class="analysis-results" id="analysisResults">
+                            <!-- Analysis results will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Tab -->
+            <div class="tab-content" id="quiz">
+                <div class="quiz-container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-brain"></i> Compiler Design Quiz</h2>
+                        <p>Test your knowledge with interactive questions</p>
+                    </div>
+
+                    <div class="quiz-interface">
+                        <div class="quiz-status" id="quizStatus">
+                            <div class="status-item">
+                                <span class="label">Question:</span>
+                                <span class="value" id="currentQuestion">1</span> of <span id="totalQuestions">10</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="label">Score:</span>
+                                <span class="value" id="currentScore">0</span>
+                            </div>
+                        </div>
+
+                        <div class="quiz-content" id="quizContent">
+                            <!-- Quiz questions will be loaded here -->
+                            <div class="start-quiz">
+                                <h3>Ready to test your compiler design knowledge?</h3>
+                                <p>This quiz covers various aspects of compiler design including lexical analysis, parsing, semantic analysis, and code generation.</p>
+                                <button id="startQuizBtn" class="btn btn-primary">
+                                    <i class="fas fa-play"></i>
+                                    Start Quiz
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div class="notification-container" id="notificationContainer"></div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/compiler-design.js') }}"></script>
+</body>
+</html>

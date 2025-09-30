@@ -1,0 +1,44 @@
+{
+  "session_id": null,
+  "timestamp": "2025-09-30T21:54:44.529404",
+  "blocks": [
+    {
+      "id": "block_1",
+      "type": "start",
+      "x": 120,
+      "y": 40,
+      "properties": {}
+    },
+    {
+      "id": "block_2",
+      "type": "print",
+      "x": 260,
+      "y": 180.00001525878906,
+      "properties": {
+        "text": "hellow workd",
+        "variables": ""
+      }
+    },
+    {
+      "id": "block_3",
+      "type": "end",
+      "x": 360,
+      "y": 320.00001525878906,
+      "properties": {}
+    }
+  ],
+  "connections": [
+    {
+      "from": "canvas-block_1",
+      "to": "block_2"
+    },
+    {
+      "from": "canvas-block_2",
+      "to": "block_3"
+    }
+  ],
+  "zoom": 1,
+  "panX": 0,
+  "panY": 0,
+  "language": "python"
+}
